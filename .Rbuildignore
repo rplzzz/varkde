@@ -1,0 +1,7 @@
+^analysis$
+^.*\.Rproj$
+^\.Rproj\.user$
+~$
+^todo.md$
+^readme.md$
+
