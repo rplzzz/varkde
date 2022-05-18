@@ -47,6 +47,14 @@ terms of the cdf, so it's important to get that right.  Mostly we just
 use the quantile function to generate more analyst-friendly axes for
 plots, so high accuracy isn't a big priority.  
 
+UPDATE: There is one other way that we use the quantile function.  It
+is used to convert event and non-event distributions to a common
+pseudo-observation scale.  We do this by computing the quantile
+function in the event distribution and passing those quantiles to the
+CDF for the non-event distribution.  I think the quantile function is
+still close enough for this purpose, but it's worth taking a closer
+look.
+
 The second major limitation is the behavior in the tails.  Past the
 last kernel on each end of the distribution, we extrapolate by holding
 the logarithmic derivative constant at its value at the end of the

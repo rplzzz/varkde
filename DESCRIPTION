@@ -1,7 +1,7 @@
 Package: varkde
 Type: Package
 Title: Variable Bandwidth Kernel Density Estimate
-Version: 0.1.0
+Version: 0.1.1
 Authors@R: 
     person(given = "Robert",
            family = "Link",

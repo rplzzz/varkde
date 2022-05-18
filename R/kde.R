@@ -28,7 +28,7 @@
 kde <- function(x, n=NA, bwfac=1, bwmin=1e-6, ngrid=256)
 {
   if(is.na(n)) {
-    n <- pmin(150, round(length(x)/20))
+    n <- max(min(150, round(length(x)/20)), 4)
   }
   x <- x[!is.na(x)]
   x <- sort(x)
