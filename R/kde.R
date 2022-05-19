@@ -22,10 +22,11 @@
 #' @param bwfac Bandwidth adjustment factor.  Calculated bandwidths will be
 #' uniformly scaled by this factor.  Higher values produce smoother estimates.
 #' @param bwmin Minimum allowable bandwidth for an individual kernel.
+#' @param limits Closed boundaries for the distribution (\code{NA} means no boundary)
 #' @param ngrid Number of grid points to use for the interpolation function.
 #' Default is 256.
 #' @export
-kde <- function(x, n=NA, bwfac=1, bwmin=1e-6, ngrid=256)
+kde <- function(x, n=NA, bwfac=1, bwmin=1e-6, limits = c(NA, NA), ngrid=256)
 {
   if(is.na(n)) {
     n <- max(min(150, round(length(x)/20)), 4)
@@ -59,17 +60,46 @@ kde <- function(x, n=NA, bwfac=1, bwmin=1e-6, ngrid=256)
   laminv <- sapply(seq_along(x), estwidth)
   lam <- 1/laminv
 
+  ## Set up vector of weights. Weights are used to adjust for kernels that overlap
+  ## the boundaries.
+  wgt <- rep(1, length(x))
+  if(!is.na(limits[1])) {
+    ## Adjust for lower boundary
+    stopifnot(all(x >= limits[1]))
+
+    xlim <- (limits[1] - x)*lam      # Location of the lower limit relative to the kernel centers
+    ilokern <- which(xlim > -1)         # indices of kernels that overlap the lower boundary
+    cutfrac <- epan_int(xlim[ilokern], 1) # Fraction of the kernel that is over the boundary
+    wgt[ilokern] <- wgt[ilokern]/(1-cutfrac)
+  }
+  if(!is.na(limits[2])) {
+    ## Adjust for upper boundary
+    stopifnot(all(x <= limits[2]))
+
+    xlim <- (limits[2] - x)*lam   # Location of the upper limit relative to kernel centers
+    ihikern <- which(xlim < 1)       # indices of kernels that overlap the upper boundary
+    kpfrac <- epan_int(xlim[ihikern], 1) # Fraction of kernel that is *within* the boundary
+    wgt[ihikern] <- wgt[ihikern] / kpfrac
+  }
+
   ## Set up the grid for estimating the density
   xlo <- min(x - laminv)
+  if(!is.na(limits[1])) {
+    xlo <- max(limits[1], xlo)
+  }
   xhi <- max(x + laminv)
+  if(!is.na(limits[2])) {
+    xhi <- min(limits[2], xhi)
+  }
 
   xgrid <- seq(xlo, xhi, length.out = ngrid)
   dengrid <- rep(0, ngrid)
 
+
   ## Loop over kernels; accumulate density at each grid point
   for(i in seq_along(lam)) {
     u <- xgrid - x[i]
-    dengrid <- dengrid + epan(u, lam[i])
+    dengrid <- dengrid + wgt[i]*epan(u, lam[i])
   }
   nsamp <- length(x)
   dengrid <- dengrid / nsamp
@@ -94,10 +124,22 @@ kde <- function(x, n=NA, bwfac=1, bwmin=1e-6, ngrid=256)
 
   ## Calculate the probability mass in the tails.  We need this to make a correction
   ## to the the density function
-  lslope <- logdenfun(xgrid[1]) - logdenfun(xgrid[1]-1)
-  ltail <- dengrid[1] / lslope
-  rslope <- logdenfun(xgrid[ngrid]) - logdenfun(xgrid[ngrid]+1)
-  rtail <- dengrid[ngrid] / rslope
+  if(is.na(limits[1])) {
+    lslope <- logdenfun(xgrid[1]) - logdenfun(xgrid[1]-1)
+    ltail <- dengrid[1] / lslope
+  }
+  else {
+    ltail <- 0
+  }
+
+  if(is.na(limits[2])) {
+    rslope <- logdenfun(xgrid[ngrid]) - logdenfun(xgrid[ngrid]+1)
+    rtail <- dengrid[ngrid] / rslope
+  }
+  else {
+    rtail <- 0
+  }
+
   tottail <- ltail + rtail
   message('Left tail: ', ltail, '  Right tail: ', rtail, '  Total: ', tottail)
 
@@ -119,15 +161,33 @@ kde <- function(x, n=NA, bwfac=1, bwmin=1e-6, ngrid=256)
   cdfgrid <- rep(0, ngrid)
   for(i in seq_along(cdfgrid)) {
     u <- xgrid[i] - x
-    nplus <- sum(u >= laminv)   # number of kernels for which xgrid is above the kernel's support
+    nplus <- sum(u >= laminv)   # number of kernels for which xgrid is above the
+                                # kernel's support - each one of these
+                                # contributes 1 unit to the integral
     midkerns <- which(u < laminv & u > -laminv)   # kernels for which xgrid falls within the kernel's support
     if(length(midkerns) > 0) {
-      nmid <- sum(epan_int(u[midkerns], lam[midkerns]))
+      nmid <- sum(epan_int(u[midkerns], lam[midkerns])*wgt[midkerns])
+      if(!is.na(limits[1])) {
+        adjkerns <- intersect(midkerns, ilokern)
+        if(length(adjkerns) > 0) {
+          ## We have to correct for the portions of the kernels that are below the
+          ## lower boundary.  We identified these above and calculated what fraction
+          ## of each one is outside the boundary.  However, we need to count just
+          ## the ones for which xgrid[i] is within the kernel's support domain
+          icut <- which(ilokern %in% adjkerns)
+          nmid <- nmid - sum(cutfrac[icut] * wgt[adjkerns])
+        }
+      }
+      ## Note that no adjustment is necessary for the kernels that overlap the
+      ## high boundary because we are only integrating over values < x.
     }
     else {
       nmid <- 0
     }
     cdfgrid[i] <- ltail + (nplus + nmid)/nsamp
+    if(i >= ngrid-3) {
+      message('i: ', i, '  cdfgrid: ', cdfgrid[i])
+    }
   }
   ## As with the density, we need a correction here for the tails.  This should be
   ## equal to the tailfac calculated above, but check it anyhow

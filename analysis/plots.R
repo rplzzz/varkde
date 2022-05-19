@@ -20,3 +20,10 @@ plot_denratio <- function(denstructs, varname, qrange = c(5e-4, 1-5e-4))
 
   curve(logratio, xmin, xmax, xlab=varname, ylim=c(-5,10))
 }
+
+plot_den <- function(kdestruct, qrange = c(5e-4, 1-5e-4))
+{
+  rng <- qvarkde(qrange, kdestruct)
+  den <- function(x) {dvarkde(x, kdestruct, log=TRUE)}
+  curve(den, rng[[1]], rng[[2]])
+}

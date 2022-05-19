@@ -4,7 +4,7 @@
 \alias{kde}
 \title{Fit a variable bandwidth kernel density estimate to a vector of data}
 \usage{
-kde(x, n = NA, bwfac = 1, bwmin = 1e-06, ngrid = 256)
+kde(x, n = NA, bwfac = 1, bwmin = 1e-06, limits = c(NA, NA), ngrid = 256)
 }
 \arguments{
 \item{x}{Vector of samples for which to construct density.}
@@ -13,6 +13,8 @@ kde(x, n = NA, bwfac = 1, bwmin = 1e-06, ngrid = 256)
 uniformly scaled by this factor.  Higher values produce smoother estimates.}
 
 \item{bwmin}{Minimum allowable bandwidth for an individual kernel.}
+
+\item{limits}{Closed boundaries for the distribution (\code{NA} means no boundary)}
 
 \item{ngrid}{Number of grid points to use for the interpolation function.
 Default is 256.}
