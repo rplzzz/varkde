@@ -79,7 +79,11 @@ kde <- function(x, n=NA, bwfac=1, bwmin=1e-6, limits = c(NA, NA), ngrid=256)
     xlim <- (limits[2] - x)*lam   # Location of the upper limit relative to kernel centers
     ihikern <- which(xlim < 1)       # indices of kernels that overlap the upper boundary
     kpfrac <- epan_int(xlim[ihikern], 1) # Fraction of kernel that is *within* the boundary
-    wgt[ihikern] <- wgt[ihikern] / kpfrac
+
+    ## We need to account for the possibility that a kernel overlaps both boundaries,
+    ## which we can do by backing out the fraction overlapping the left boundary from
+    ## the current value of the weight.
+    wgt[ihikern] <- 1 / (kpfrac + 1/wgt[ihikern] - 1)
   }
 
   ## Set up the grid for estimating the density
