@@ -57,8 +57,28 @@ kde <- function(x, n=NA, bwfac=1, bwmin=1e-6, limits = c(NA, NA), ngrid=256)
     epan_bnd(sig)
   }
 
+  ## lambda is the parameter in the Epanechnikov kernel.  The half-width of the
+  ## kernel 1/lambda
   laminv <- sapply(seq_along(x), estwidth)
   lam <- 1/laminv
+
+  ## If we have closed-ended distributions, then we need to make sure the density
+  ## reaches the edge of the distribution's support.  We do this by adding a ghost
+  ## observation at the boundary.
+  if(!is.na(limits[1]) && min(x-laminv) > limits[1]) {
+    x <- c(limits[1], x)
+    ghostwidth <- max(x) - limits[1]
+    laminv <- c(ghostwidth, laminv)
+    lam <- c(1/ghostwidth, lam)
+  }
+
+  if(!is.na(limits[2]) && max(x+laminv) < limits[2]) {
+    x <- c(x, limits[2])
+    ghostwidth <- limits[2] - min(x)
+    laminv <- c(laminv, ghostwidth)
+    lam <- c(lam, 1/ghostwidth)
+  }
+
 
   ## Set up vector of weights. Weights are used to adjust for kernels that overlap
   ## the boundaries.
