@@ -153,6 +153,7 @@ kde <- function(x, n=NA, bwfac=1, bwmin=1e-6, limits = c(NA, NA), ngrid=256)
     ltail <- dengrid[1] / lslope
   }
   else {
+    lslope <- 0
     ltail <- 0
   }
 
@@ -161,6 +162,7 @@ kde <- function(x, n=NA, bwfac=1, bwmin=1e-6, limits = c(NA, NA), ngrid=256)
     rtail <- dengrid[ngrid] / rslope
   }
   else {
+    rslope <- 0
     rtail <- 0
   }
 
